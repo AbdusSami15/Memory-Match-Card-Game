@@ -15,6 +15,9 @@ class UIScene extends Phaser.Scene {
     const { width, height } = this.scale;
     this.elapsedTime = 0;
 
+    // HUD Background Bar
+    this.hudBar = this.add.rectangle(width * 0.5, 45, width, 90, 0x000000, 0.4);
+
     // HUD Container for easy positioning
     this.hudText = this.add.text(width * 0.5, 45, "", {
       fontFamily: "Arial",
@@ -44,6 +47,7 @@ class UIScene extends Phaser.Scene {
     // Handle Resize
     this.scale.on("resize", () => {
       const { width } = this.scale;
+      this.hudBar.setPosition(width * 0.5, 45).setSize(width, 90);
       this.hudText.setX(width * 0.5);
       this.pauseBtn.setX(width - 40);
       this.soundBtn.setX(width - 90);

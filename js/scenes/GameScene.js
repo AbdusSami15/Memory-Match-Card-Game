@@ -43,9 +43,9 @@ class GameScene extends Phaser.Scene {
   create() {
     const { width, height } = this.scale;
 
-    // Background Fallback
-    if (this.textures.exists("bg")) {
-      this.bg = this.add.image(width / 2, height / 2, "bg").setDisplaySize(width, height);
+    // Background
+    if (this.textures.exists("game_bg")) {
+      this.bg = this.add.tileSprite(width / 2, height / 2, width, height, "game_bg");
     } else {
       this.cameras.main.setBackgroundColor("#1b1b1b");
     }
@@ -129,7 +129,7 @@ class GameScene extends Phaser.Scene {
   handleResize() {
     const { width, height } = this.scale;
     if (this.bg) {
-      this.bg.setPosition(width / 2, height / 2).setDisplaySize(width, height);
+      this.bg.setPosition(width / 2, height / 2).setSize(width, height);
     }
     this.createGrid(true); // Re-layout cards
   }
@@ -290,7 +290,7 @@ class GameScene extends Phaser.Scene {
     if (this.state === this.STATES.IDLE) {
       this.state = this.STATES.RESOLVING; // Lock briefly during flip
       this.firstSelected = card;
-      this.playSound("flip");
+      this.playSound("sfx_flip");
       
       this.flipUp(card, () => {
         this.state = this.STATES.ONE_SELECTED;
@@ -303,7 +303,7 @@ class GameScene extends Phaser.Scene {
       this.state = this.STATES.RESOLVING;
       this.secondSelected = card;
       this.turns += 1;
-      this.playSound("flip");
+      this.playSound("sfx_flip");
 
       this.events.emit("update-ui", { turns: this.turns, matches: this.matches, totalPairs: this.totalPairs });
 

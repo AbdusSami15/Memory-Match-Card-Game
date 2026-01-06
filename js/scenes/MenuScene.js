@@ -11,7 +11,21 @@ class MenuScene extends Phaser.Scene {
 
   create() {
     const { width, height } = this.scale;
-    this.cameras.main.setBackgroundColor("#1b1b1b");
+    
+    // Background
+    if (this.textures.exists("game_bg")) {
+      this.add.tileSprite(width / 2, height / 2, width, height, "game_bg");
+    } else {
+      this.cameras.main.setBackgroundColor("#1b1b1b");
+    }
+
+    // Play Background Music if not already playing
+    const music = this.sound.get("sfx_bg");
+    if (!music) {
+      this.sound.play("sfx_bg", { loop: true, volume: 0.4 });
+    } else if (!music.isPlaying) {
+      music.play();
+    }
 
     // Title
     this.add.text(width * 0.5, height * 0.15, "MEMORY MATCH", {

@@ -47,6 +47,7 @@ class BootScene extends Phaser.Scene {
 
     this.load.on("complete", () => {
       loadingText.setText("Ready!");
+      this.createProceduralBackground();
       this.time.delayedCall(500, () => {
         this.scene.start("MenuScene");
       });
@@ -71,10 +72,11 @@ class BootScene extends Phaser.Scene {
     }
 
     // Audio
-    this.load.audio("flip", "assets/audio/flip.wav");
+    this.load.audio("sfx_flip", "assets/audio/flip.wav");
     this.load.audio("match", "assets/audio/match.wav");
     this.load.audio("mismatch", "assets/audio/mismatch.wav");
     this.load.audio("win", "assets/audio/win.wav");
+    this.load.audio("sfx_bg", "assets/audio/bg.wav");
 
     // Initialize Mute State from localStorage
     const isMuted = localStorage.getItem("memory_muted") === "true";
@@ -85,5 +87,38 @@ class BootScene extends Phaser.Scene {
        // Just a small delay or a dummy asset to ensure complete event triggers nicely
        this.load.image("pixel", "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=");
     }
+  }
+
+  createProceduralBackground() {
+    const size = 512;
+    const graphics = this.make.graphics({ x: 0, y: 0, add: false });
+
+    // 1. Deep Charcoal/Grey Gradient-like base
+    // We'll fill with a dark grey and add some subtle variations
+    graphics.fillStyle(0x1a1a1a); 
+    graphics.fillRect(0, 0, size, size);
+
+    // 2. Add professional "Carbon Fiber" or "Tech" pattern
+    // Fine dots for a clean look
+    graphics.fillStyle(0xffffff, 0.03);
+    for (let x = 0; x < size; x += 4) {
+      for (let y = 0; y < size; y += 4) {
+        if ((x + y) % 8 === 0) {
+          graphics.fillPoint(x, y);
+        }
+      }
+    }
+
+    // 3. Very subtle cross-hatch/grid for structure
+    graphics.lineStyle(1, 0xffffff, 0.02);
+    graphics.strokeRect(0, 0, size, size);
+    
+    // Add a center highlight feel (even though it's tiled, we can simulate texture)
+    graphics.fillStyle(0x222222, 0.5);
+    graphics.fillCircle(size / 2, size / 2, size / 2);
+
+    // Generate texture
+    graphics.generateTexture('game_bg', size, size);
+    graphics.destroy();
   }
 }

@@ -50,6 +50,11 @@ class WinScene extends Phaser.Scene {
   create() {
     const { width, height } = this.scale;
 
+    // Background
+    if (this.textures.exists("game_bg")) {
+      this.winBg = this.add.tileSprite(width / 2, height / 2, width, height, "game_bg");
+    }
+
     // Semi-transparent overlay with fade-in
     this.winOverlay = this.add.rectangle(width * 0.5, height * 0.5, width, height, 0x000000, 0);
     
@@ -157,6 +162,9 @@ class WinScene extends Phaser.Scene {
 
   handleResize() {
     const { width, height } = this.scale;
+    if (this.winBg) {
+      this.winBg.setPosition(width / 2, height / 2).setSize(width, height);
+    }
     if (this.winOverlay) {
       this.winOverlay.setPosition(width * 0.5, height * 0.5).setDisplaySize(width, height);
     }
