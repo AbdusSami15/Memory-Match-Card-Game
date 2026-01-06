@@ -15,16 +15,16 @@ class UIScene extends Phaser.Scene {
     const { width, height } = this.scale;
     this.elapsedTime = 0;
 
-    // HUD Background Bar
-    this.hudBar = this.add.rectangle(width * 0.5, 45, width, 90, 0x000000, 0.4);
+    // HUD Background Bar - Sleek modern look
+    this.hudBar = this.add.rectangle(width * 0.5, 45, width, 90, 0x000000, 0.6);
+    this.hudBorder = this.add.rectangle(width * 0.5, 90, width, 2, 0x4cc9f0, 0.3);
 
-    // HUD Container for easy positioning
-    this.hudText = this.add.text(width * 0.5, 45, "", {
-      fontFamily: "Arial",
-      fontSize: "26px",
-      color: "#ffffff",
-      fontStyle: "bold"
-    }).setOrigin(0.5);
+    // HUD Container - Left aligned to prevent button overlap
+    this.hudText = this.add.text(25, 45, "", {
+      fontFamily: "Arial Black",
+      fontSize: "20px",
+      color: "#ffffff"
+    }).setOrigin(0, 0.5);
 
     this.updateHUDText(0, 0);
 
@@ -48,31 +48,33 @@ class UIScene extends Phaser.Scene {
     this.scale.on("resize", () => {
       const { width } = this.scale;
       this.hudBar.setPosition(width * 0.5, 45).setSize(width, 90);
-      this.hudText.setX(width * 0.5);
-      this.pauseBtn.setX(width - 40);
-      this.soundBtn.setX(width - 90);
+      this.hudBorder.setPosition(width * 0.5, 90).setSize(width, 2);
+      this.hudText.setX(25);
+      this.pauseBtn.setX(width - 35);
+      this.soundBtn.setX(width - 95);
     });
 
     // Pause Button
-    this.pauseBtn = this.add.text(width - 40, 45, "II", {
-      fontFamily: "Arial",
-      fontSize: "32px",
-      color: "#ffffff",
-      fontStyle: "bold"
+    this.pauseBtn = this.add.text(width - 35, 45, "II", {
+      fontFamily: "Arial Black",
+      fontSize: "36px",
+      color: "#ffffff"
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
 
+    this.pauseBtn.on("pointerover", () => this.pauseBtn.setScale(1.1));
+    this.pauseBtn.on("pointerout", () => this.pauseBtn.setScale(1.0));
     this.pauseBtn.on("pointerup", () => {
       this.togglePause();
     });
 
     // Sound Button
     const isMuted = this.sound.mute;
-    this.soundBtn = this.add.text(width - 90, 45, isMuted ? "🔇" : "🔊", {
-      fontFamily: "Arial",
-      fontSize: "32px",
-      color: "#ffffff"
+    this.soundBtn = this.add.text(width - 95, 45, isMuted ? "🔇" : "🔊", {
+      fontSize: "32px"
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
 
+    this.soundBtn.on("pointerover", () => this.soundBtn.setScale(1.1));
+    this.soundBtn.on("pointerout", () => this.soundBtn.setScale(1.0));
     this.soundBtn.on("pointerup", () => {
       this.toggleSound();
     });
@@ -106,33 +108,32 @@ class UIScene extends Phaser.Scene {
     this.pauseOverlay = this.add.container(0, 0).setVisible(false).setDepth(100);
 
     // Background Dim
-    const bg = this.add.rectangle(width * 0.5, height * 0.5, width, height, 0x000000, 0.7);
+    const bg = this.add.rectangle(width * 0.5, height * 0.5, width, height, 0x000000, 0.85);
     bg.setInteractive(); // Block input to scenes below
 
     const panel = this.add.container(width * 0.5, height * 0.5);
     
-    const rect = this.add.rectangle(0, 0, 400, 450, 0x1b1b1b, 1);
-    rect.setStrokeStyle(4, 0xffffff, 0.2);
+    const rect = this.add.rectangle(0, 0, 420, 500, 0x1b1b1b, 1);
+    rect.setStrokeStyle(4, 0x4cc9f0, 1);
 
-    const title = this.add.text(0, -140, "PAUSED", {
-      fontFamily: "Arial",
-      fontSize: "48px",
-      color: "#ffffff",
-      fontStyle: "bold"
+    const title = this.add.text(0, -160, "PAUSED", {
+      fontFamily: "Arial Black",
+      fontSize: "52px",
+      color: "#ffffff"
     }).setOrigin(0.5);
 
     // Buttons
-    const resumeBtn = this.createOverlayButton(0, -40, "RESUME", () => this.togglePause());
-    const restartBtn = this.createOverlayButton(0, 50, "RESTART", () => {
+    const resumeBtn = this.createOverlayButton(0, -40, "RESUME", () => this.togglePause(), 0x4cc9f0);
+    const restartBtn = this.createOverlayButton(0, 60, "RESTART", () => {
       this.togglePause();
       const gameScene = this.scene.get("GameScene");
       gameScene.scene.restart();
-    });
-    const homeBtn = this.createOverlayButton(0, 140, "HOME", () => {
+    }, 0x4895ef);
+    const homeBtn = this.createOverlayButton(0, 160, "HOME", () => {
       this.togglePause();
       this.scene.stop("GameScene");
       this.scene.start("MenuScene");
-    });
+    }, 0xf72585);
 
     panel.add([rect, title, ...resumeBtn, ...restartBtn, ...homeBtn]);
     this.pauseOverlay.add([bg, panel]);
@@ -145,28 +146,30 @@ class UIScene extends Phaser.Scene {
     });
   }
 
-  createOverlayButton(x, y, text, callback) {
-    const btnBg = this.add.rectangle(x, y, 280, 70, 0xffffff, 1);
-    btnBg.setStrokeStyle(2, 0x000000, 0.2);
-    const btnText = this.add.text(x, y, text, {
-      fontFamily: "Arial",
-      fontSize: "28px",
-      color: "#111111",
-      fontStyle: "bold"
+  createOverlayButton(x, y, text, callback, color) {
+    const container = this.add.container(x, y);
+    
+    const btnBg = this.add.rectangle(0, 0, 300, 80, color, 1);
+    btnBg.setStrokeStyle(2, 0xffffff, 0.3);
+    
+    const btnText = this.add.text(0, 0, text, {
+      fontFamily: "Arial Black",
+      fontSize: "30px",
+      color: "#ffffff"
     }).setOrigin(0.5);
 
+    container.add([btnBg, btnText]);
+
     btnBg.setInteractive({ useHandCursor: true });
+    btnBg.on("pointerover", () => container.setScale(1.05));
+    btnBg.on("pointerout", () => container.setScale(1.0));
+    btnBg.on("pointerdown", () => container.setScale(0.95));
     btnBg.on("pointerup", () => {
-      this.tweens.add({
-        targets: [btnBg, btnText],
-        scale: 0.95,
-        duration: 100,
-        yoyo: true,
-        onComplete: callback
-      });
+      container.setScale(1.05);
+      callback();
     });
 
-    return [btnBg, btnText];
+    return [container];
   }
 
   togglePause() {
@@ -199,7 +202,7 @@ class UIScene extends Phaser.Scene {
 
     const timeStr = this.formatTime(this.elapsedTime);
     this.hudText.setText(
-      `MOVES: ${this.currentMoves}   MATCHES: ${this.currentMatches}/${this.totalPairs}   TIME: ${timeStr}`
+      `MOVES: ${this.currentMoves}     MATCHES: ${this.currentMatches}/${this.totalPairs}     TIME: ${timeStr}`
     );
   }
 

@@ -119,6 +119,13 @@ class BootScene extends Phaser.Scene {
 
     // Generate texture
     graphics.generateTexture('game_bg', size, size);
+    
+    // Create a small white circle for particles
+    graphics.clear();
+    graphics.fillStyle(0xffffff, 1);
+    graphics.fillCircle(8, 8, 8);
+    graphics.generateTexture('particle', 16, 16);
+
     graphics.destroy();
   }
 }
