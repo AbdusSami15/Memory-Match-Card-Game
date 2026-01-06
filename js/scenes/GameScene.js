@@ -59,7 +59,6 @@ class GameScene extends Phaser.Scene {
     this.startTime = this.time.now;
 
     this.input.setTopOnly(true);
-    this.lastInputTime = 0;
 
     // Start UI Scene
     this.scene.launch("UIScene", { totalPairs: this.totalPairs });
@@ -85,9 +84,12 @@ class GameScene extends Phaser.Scene {
     this.time.removeAllEvents();
     this.tweens.killAll();
 
-    // 3. Clean up cards
+    // 3. Clean up cards and their hit zones
     this.cards.forEach(card => {
-      card.removeAllListeners();
+      if (card.hitZone) {
+        card.hitZone.removeAllListeners();
+        card.hitZone.destroy();
+      }
       card.destroy();
     });
 
@@ -189,7 +191,7 @@ class GameScene extends Phaser.Scene {
         }
       }
     } else {
-      // Reposition existing cards
+      // Reposition existing cards and their hit zones
       let index = 0;
       for (let r = 0; r < rows; r++) {
         for (let c = 0; c < cols; c++) {
@@ -204,6 +206,11 @@ class GameScene extends Phaser.Scene {
             card.front.setDisplaySize(cardW, cardH);
             if (card.backLabel) card.backLabel.setFontSize(cardW * 0.4);
             if (card.frontLabel) card.frontLabel.setFontSize(cardW * 0.35);
+            // Update hit zone position and size
+            if (card.hitZone) {
+              card.hitZone.setPosition(x, y);
+              card.hitZone.setSize(cardW, cardH);
+            }
           }
         }
       }
@@ -238,8 +245,10 @@ class GameScene extends Phaser.Scene {
     let front;
     let frontLabel;
     
-    // assetId is 1-indexed for the file name (01, 02...)
-    const assetId = (cardId + 1).toString().padStart(2, "0");
+    // Cycle through available textures (we have 8: 01-08)
+    // For hard mode with 10 pairs, cards 9 and 10 will reuse textures 1 and 2
+    const textureIndex = (cardId % 8) + 1;
+    const assetId = textureIndex.toString().padStart(2, "0");
     const assetKey = `card_front_${assetId}`;
 
     if (this.textures.exists(assetKey)) {
@@ -269,17 +278,20 @@ class GameScene extends Phaser.Scene {
     container.front = front;
     container.frontLabel = frontLabel;
 
-    container.setInteractive(new Phaser.Geom.Rectangle(-w / 2, -h / 2, w, h), Phaser.Geom.Rectangle.Contains);
-    container.on("pointerup", () => this.onCardPressed(container));
+    // --- SEPARATE HIT ZONE (not affected by container's scale animation) ---
+    // This Zone sits at the same position but is NOT a child of the container
+    // So when we scaleX the container during flip, this zone stays stable
+    const hitZone = this.add.zone(x, y, w, h);
+    hitZone.setInteractive({ useHandCursor: true });
+    hitZone.on("pointerdown", () => this.onCardPressed(container));
+    
+    // Store reference so we can reposition on resize and cleanup
+    container.hitZone = hitZone;
 
     return container;
   }
 
   onCardPressed(card) {
-    const now = this.time.now;
-    if (now - this.lastInputTime < 150) return; // Debounce fast clicks
-    this.lastInputTime = now;
-
     // 1. Ignore input in PREVIEW, RESOLVING or WIN states
     if (this.state === this.STATES.PREVIEW || this.state === this.STATES.RESOLVING || this.state === this.STATES.WIN) return;
 
@@ -464,7 +476,9 @@ class GameScene extends Phaser.Scene {
       });
     });
 
-    for (const c of this.cards) c.disableInteractive();
+    for (const c of this.cards) {
+      if (c.hitZone) c.hitZone.disableInteractive();
+    }
   }
 
   playSound(key) {
