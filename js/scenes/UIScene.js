@@ -104,10 +104,19 @@ class UIScene extends Phaser.Scene {
     }
 
     // Pause Overlay resize
-    if (this.pauseOverlay && this.pauseOverlay.visible) {
+    if (this.pauseOverlay) {
       const { height } = this.scale;
       if (this.pauseOverlayBg) this.pauseOverlayBg.setSize(width, height).setPosition(width * 0.5, height * 0.5);
-      if (this.pausePanel) this.pausePanel.setPosition(width * 0.5, height * 0.5);
+
+      if (this.pausePanel) {
+        this.pausePanel.setPosition(width * 0.5, height * 0.5);
+
+        // Dynamically scale the pause panel
+        const baseWidth = 500;
+        const baseHeight = 600;
+        const targetScale = Math.min(1, (width * 0.85) / baseWidth, (height * 0.85) / baseHeight);
+        this.pausePanel.setScale(targetScale);
+      }
     }
   }
 

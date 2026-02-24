@@ -230,7 +230,7 @@ class WinScene extends Phaser.Scene {
 
       // Dynamically scale the container if the screen is too small/narrow
       const baseWidth = 540;
-      const baseHeight = 650;
+      const baseHeight = 620;
       const targetScale = Math.min(1, (width * 0.9) / baseWidth, (height * 0.9) / baseHeight);
       this.winContainer.setScale(targetScale);
 
