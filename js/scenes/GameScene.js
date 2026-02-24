@@ -21,7 +21,7 @@ class GameScene extends Phaser.Scene {
       cols: 4,
       rows: 4
     };
-    
+
     this.totalPairs = 8;
     this.matches = 0;
     this.turns = 0;
@@ -35,8 +35,8 @@ class GameScene extends Phaser.Scene {
     this.difficultyId = this.config.id || "medium";
     this.totalPairs = (this.config.cols * this.config.rows) / 2;
 
-    // Difficulty-based mismatch delays
-    const delays = { easy: 800, medium: 1000, hard: 1200 };
+    // Difficulty-based mismatch delays (ms)
+    const delays = { easy: 1500, medium: 1000, hard: 600 };
     this.mismatchDelay = delays[this.difficultyId] || 1000;
   }
 
@@ -71,6 +71,9 @@ class GameScene extends Phaser.Scene {
 
     // Resize support
     this.scale.on("resize", this.handleResize, this);
+
+    // Initial layout
+    this.handleResize();
 
     // Cleanup
     this.events.once("shutdown", this.cleanup, this);
@@ -163,6 +166,12 @@ class GameScene extends Phaser.Scene {
     let cardW = (availableW - (cols - 1) * gap) / cols;
     let cardH = (availableH - (rows - 1) * gap) / rows;
 
+    // Constrain card size for desktop/landscape
+    const maxCardW = 150;
+    const maxCardH = 200;
+    if (cardW > maxCardW) cardW = maxCardW;
+    if (cardH > maxCardH) cardH = maxCardH;
+
     // Keep aspect ratio roughly 3:4 if possible or just use squarest fit
     const ratio = 0.75; // w/h
     if (cardW / cardH > ratio) {
@@ -244,10 +253,9 @@ class GameScene extends Phaser.Scene {
     // --- Front Face ---
     let front;
     let frontLabel;
-    
-    // Cycle through available textures (we have 8: 01-08)
-    // For hard mode with 10 pairs, cards 9 and 10 will reuse textures 1 and 2
-    const textureIndex = (cardId % 8) + 1;
+
+    // Select texture using cardId (previously wrapped at 8)
+    const textureIndex = cardId + 1;
     const assetId = textureIndex.toString().padStart(2, "0");
     const assetKey = `card_front_${assetId}`;
 
@@ -284,7 +292,7 @@ class GameScene extends Phaser.Scene {
     const hitZone = this.add.zone(x, y, w, h);
     hitZone.setInteractive({ useHandCursor: true });
     hitZone.on("pointerdown", () => this.onCardPressed(container));
-    
+
     // Store reference so we can reposition on resize and cleanup
     container.hitZone = hitZone;
 
@@ -303,11 +311,11 @@ class GameScene extends Phaser.Scene {
       this.state = this.STATES.RESOLVING; // Lock briefly during flip
       this.firstSelected = card;
       this.playSound("sfx_flip");
-      
+
       this.flipUp(card, () => {
         this.state = this.STATES.ONE_SELECTED;
       });
-    } 
+    }
     else if (this.state === this.STATES.ONE_SELECTED) {
       // 4. Ignore double-tapping the same card (safety check)
       if (this.firstSelected === card) return;
@@ -338,7 +346,7 @@ class GameScene extends Phaser.Scene {
       this.playSound("match");
       a.isMatched = true;
       b.isMatched = true;
-      
+
       this.pop(a);
       this.pop(b);
 
@@ -386,10 +394,10 @@ class GameScene extends Phaser.Scene {
       onComplete: () => {
         card.back.setVisible(false);
         if (card.backLabel) card.backLabel.setVisible(false);
-        
+
         card.front.setVisible(true);
         if (card.frontLabel) card.frontLabel.setVisible(true);
-        
+
         card.isFaceUp = true;
 
         this.tweens.chain({
@@ -414,10 +422,10 @@ class GameScene extends Phaser.Scene {
       onComplete: () => {
         card.front.setVisible(false);
         if (card.frontLabel) card.frontLabel.setVisible(false);
-        
+
         card.back.setVisible(true);
         if (card.backLabel) card.backLabel.setVisible(true);
-        
+
         card.isFaceUp = false;
 
         this.tweens.chain({
@@ -462,17 +470,17 @@ class GameScene extends Phaser.Scene {
   showWin() {
     this.state = this.STATES.WIN;
     this.playSound("win");
-    
+
     // Get time from UIScene if it's running, or calculate here
     const uiScene = this.scene.get("UIScene");
     const finalTime = uiScene ? uiScene.elapsedTime : Math.floor((this.time.now - this.startTime) / 1000);
-    
+
     this.time.delayedCall(500, () => {
       this.scene.stop("UIScene");
-      this.scene.start("WinScene", { 
-        moves: this.turns, 
-        time: finalTime, 
-        difficultyId: this.difficultyId 
+      this.scene.start("WinScene", {
+        moves: this.turns,
+        time: finalTime,
+        difficultyId: this.difficultyId
       });
     });
 

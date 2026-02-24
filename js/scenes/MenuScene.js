@@ -1,7 +1,7 @@
 class MenuScene extends Phaser.Scene {
   constructor() {
     super("MenuScene");
-    
+
     this.difficulties = [
       { id: "easy", label: "EASY", cols: 4, rows: 3, color: 0x4cc9f0 },
       { id: "medium", label: "MEDIUM", cols: 4, rows: 4, color: 0x4895ef },
@@ -11,7 +11,7 @@ class MenuScene extends Phaser.Scene {
 
   create() {
     const { width, height } = this.scale;
-    
+
     // Background
     if (this.textures.exists("game_bg")) {
       this.add.tileSprite(width / 2, height / 2, width, height, "game_bg");
@@ -47,7 +47,7 @@ class MenuScene extends Phaser.Scene {
     if (selectedIdx === -1) selectedIdx = 1;
 
     // Difficulty Section
-    this.add.text(width * 0.5, height * 0.35, "SELECT DIFFICULTY", {
+    const diffTitle = this.add.text(width * 0.5, height * 0.35, "SELECT DIFFICULTY", {
       fontFamily: "Arial",
       fontSize: "24px",
       color: "#4cc9f0",
@@ -55,12 +55,15 @@ class MenuScene extends Phaser.Scene {
       fontStyle: "bold"
     }).setOrigin(0.5);
 
+    this.diffTitle = diffTitle;
+
+    const btnW = Math.min(width * 0.8, 300);
     const diffButtons = [];
     this.difficulties.forEach((diff, i) => {
       const y = height * 0.42 + i * 90;
       const btn = this.createModernButton(width * 0.5, y, diff.label, () => {
         this.selectDifficulty(i, diffButtons);
-      }, 300, 70, 0x1b1b1b);
+      }, btnW, 70, 0x1b1b1b);
       btn.diffData = diff;
       diffButtons.push(btn);
     });
@@ -68,10 +71,11 @@ class MenuScene extends Phaser.Scene {
     this.selectDifficulty(selectedIdx, diffButtons, false);
 
     // Play Button - Vibrant & Large
+    const playBtnW = Math.min(width * 0.9, 380);
     const playBtn = this.createModernButton(width * 0.5, height * 0.8, "START GAME", () => {
       const selected = diffButtons.find(b => b.isSelected);
       this.scene.start("GameScene", selected.diffData);
-    }, 380, 100, 0xf72585);
+    }, playBtnW, 100, 0xf72585);
 
     // Popup Animation for Play Button
     playBtn.setScale(0);
@@ -98,8 +102,60 @@ class MenuScene extends Phaser.Scene {
       this.toggleSound();
     });
 
+    // Store references for resizing
+    this.title = title;
+    this.diffButtons = diffButtons;
+    this.playBtn = playBtn;
+    this.diffTitle = diffTitle;
+
+    // Initial layout
+    this.handleResize();
+
+    // Resize support
+    this.scale.on("resize", this.handleResize, this);
+
     // Cleanup
     this.events.once("shutdown", this.cleanup, this);
+  }
+
+  handleResize() {
+    const { width, height } = this.scale;
+
+    // Background
+    if (this.textures.exists("game_bg")) {
+      const bg = this.children.list.find(c => c.texture && c.texture.key === "game_bg");
+      if (bg) bg.setPosition(width / 2, height / 2).setSize(width, height);
+    }
+
+    // Gradient
+    const gradient = this.children.list.find(c => c.type === "Graphics");
+    if (gradient) {
+      gradient.clear();
+      gradient.fillGradientStyle(0x000000, 0x000000, 0x000000, 0x000000, 0, 0, 0.5, 0.5);
+      gradient.fillRect(0, 0, width, height);
+    }
+
+    // Title
+    this.title.setPosition(width * 0.5, height * 0.18);
+
+    // Difficulty Title
+    this.diffTitle.setPosition(width * 0.5, height * 0.35);
+
+    // Difficulty Buttons
+    const btnW = Math.min(width * 0.8, 300);
+    this.diffButtons.forEach((btn, i) => {
+      const y = height * 0.42 + i * 90;
+      btn.setPosition(width * 0.5, y);
+      if (btn.bg) btn.bg.setSize(btnW, btn.bg.height);
+    });
+
+    // Play Button
+    const playBtnW = Math.min(width * 0.9, 380);
+    this.playBtn.setPosition(width * 0.5, height * 0.8);
+    if (this.playBtn.bg) this.playBtn.bg.setSize(playBtnW, this.playBtn.bg.height);
+
+    // Sound Text
+    this.soundText.setPosition(width * 0.5, height * 0.92);
   }
 
   selectDifficulty(index, buttons, animate = true) {
@@ -107,7 +163,7 @@ class MenuScene extends Phaser.Scene {
       const isSelected = i === index;
       btn.isSelected = isSelected;
       const diffColor = this.difficulties[i].color;
-      
+
       if (isSelected) {
         btn.bg.setStrokeStyle(4, 0xffffff, 1);
         btn.bg.setFillStyle(diffColor, 1);
@@ -123,14 +179,14 @@ class MenuScene extends Phaser.Scene {
 
   createModernButton(x, y, text, callback, w, h, bgColor) {
     const container = this.add.container(x, y);
-    
+
     // Shadow
     const shadow = this.add.rectangle(4, 4, w, h, 0x000000, 0.3);
-    
+
     // Background
     const bg = this.add.rectangle(0, 0, w, h, bgColor, 1);
     bg.setStrokeStyle(2, 0xffffff, 0.1);
-    
+
     const txt = this.add.text(0, 0, text, {
       fontFamily: "Arial Black",
       fontSize: h * 0.35 + "px",
@@ -159,6 +215,7 @@ class MenuScene extends Phaser.Scene {
   }
 
   cleanup() {
+    this.scale.off("resize", this.handleResize, this);
     this.tweens.killAll();
   }
 

@@ -57,7 +57,7 @@ class WinScene extends Phaser.Scene {
 
     // Semi-transparent overlay with fade-in - Professional Deep Blue/Black
     this.winOverlay = this.add.rectangle(width * 0.5, height * 0.5, width, height, 0x000000, 0);
-    
+
     this.tweens.add({
       targets: this.winOverlay,
       fillAlpha: 0.85,
@@ -68,8 +68,11 @@ class WinScene extends Phaser.Scene {
     this.winContainer.setAlpha(0);
     this.winContainer.setScale(0.8);
 
-    const panel = this.add.rectangle(0, 40, 520, 620, 0x1b1b1b, 1);
+    const panelW = Math.min(width * 0.9, 520);
+    const panelH = Math.min(height * 0.8, 620);
+    const panel = this.add.rectangle(0, 40, panelW, panelH, 0x1b1b1b, 1);
     panel.setStrokeStyle(6, 0x4cc9f0, 1);
+    this.panel = panel;
 
     // New Best Banner
     if (this.isNewBest) {
@@ -109,7 +112,7 @@ class WinScene extends Phaser.Scene {
         color: isFull ? "#ffca3a" : "#333333"
       }).setOrigin(0.5);
       starsContainer.add(star);
-      
+
       if (isFull) {
         this.tweens.add({
           targets: star,
@@ -132,15 +135,16 @@ class WinScene extends Phaser.Scene {
     }).setOrigin(0.5);
 
     // Buttons
+    const btnW = Math.min(width * 0.7, 340);
     const restartBtn = this.createModernButton(0, 160, "PLAY AGAIN", () => {
       const menu = this.scene.get("MenuScene");
       const diffData = menu.difficulties.find(d => d.id === this.stats.difficultyId);
       this.scene.start("GameScene", diffData);
-    }, 340, 80, 0x4361ee);
+    }, btnW, 80, 0x4361ee);
 
     const homeBtn = this.createModernButton(0, 260, "MAIN MENU", () => {
       this.scene.start("MenuScene");
-    }, 340, 80, 0xf72585);
+    }, btnW, 80, 0xf72585);
 
     this.winContainer.add([panel, title, sub, ...restartBtn, ...homeBtn]);
 
@@ -152,6 +156,9 @@ class WinScene extends Phaser.Scene {
 
     // Cleanup
     this.events.once("shutdown", this.cleanup, this);
+
+    // Initial layout
+    this.handleResize();
 
     // Animate container in
     this.tweens.add({
@@ -165,7 +172,7 @@ class WinScene extends Phaser.Scene {
 
   createVictoryParticles() {
     const { width, height } = this.scale;
-    
+
     // Create an emitter for colorful confetti
     const particles = this.add.particles(0, 0, 'particle', {
       x: { min: 0, max: width },
@@ -175,7 +182,7 @@ class WinScene extends Phaser.Scene {
       speedX: { min: -50, max: 50 },
       scale: { start: 0.4, end: 0 },
       rotate: { min: 0, max: 360 },
-      tint: [ 0x4cc9f0, 0x4361ee, 0xf72585, 0xffca3a, 0x4895ef ],
+      tint: [0x4cc9f0, 0x4361ee, 0xf72585, 0xffca3a, 0x4895ef],
       gravityY: 200,
       frequency: 50,
       maxParticles: 150
@@ -187,10 +194,10 @@ class WinScene extends Phaser.Scene {
 
   createModernButton(x, y, text, callback, w, h, bgColor) {
     const container = this.add.container(x, y);
-    
+
     const bg = this.add.rectangle(0, 0, w, h, bgColor, 1);
     bg.setStrokeStyle(2, 0xffffff, 0.2);
-    
+
     const txt = this.add.text(0, 0, text, {
       fontFamily: "Arial Black",
       fontSize: "24px",
@@ -220,13 +227,31 @@ class WinScene extends Phaser.Scene {
     }
     if (this.winContainer) {
       this.winContainer.setPosition(width * 0.5, height * 0.5);
+
+      // Dynamically scale the container if the screen is too small/narrow
+      const baseWidth = 540;
+      const baseHeight = 650;
+      const targetScale = Math.min(1, (width * 0.9) / baseWidth, (height * 0.9) / baseHeight);
+      this.winContainer.setScale(targetScale);
+
+      const panelW = Math.min(width * 0.9 / targetScale, 520);
+      const panelH = Math.min(height * 0.8 / targetScale, 620);
+      if (this.panel) this.panel.setSize(panelW, panelH);
+
+      // Update buttons in container if needed
+      const btnW = Math.min(width * 0.7 / targetScale, 340);
+      this.winContainer.list.forEach(child => {
+        if (child.type === "Container" && child.bg) {
+          child.bg.setSize(btnW, child.bg.height);
+        }
+      });
     }
   }
 
   cleanup() {
     this.scale.off("resize", this.handleResize, this);
     this.tweens.killAll();
-    
+
     // Stop all particle emitters
     this.children.list.forEach(child => {
       if (child.stop) child.stop();

@@ -4,30 +4,48 @@ class BootScene extends Phaser.Scene {
   }
 
   preload() {
+    this.handleResize();
+    this.scale.on("resize", this.handleResize, this);
+    this.events.once("shutdown", () => this.scale.off("resize", this.handleResize, this));
+  }
+
+  handleResize() {
+    const { width, height } = this.scale;
+    if (this.progressBox) {
+      this.progressBox.clear();
+      this.progressBox.fillStyle(0x222222, 0.8);
+      this.progressBox.fillRoundedRect(width / 2 - 160, height / 2 - 25, 320, 50, 10);
+    }
+    if (this.loadingText) this.loadingText.setPosition(width / 2, height / 2 - 60);
+    if (this.percentText) this.percentText.setPosition(width / 2, height / 2);
+    if (this.assetText) this.assetText.setPosition(width / 2, height / 2 + 60);
+  }
+
+  preload() {
     const { width, height } = this.scale;
 
     // Loading Bar background
-    const progressBox = this.add.graphics();
-    progressBox.fillStyle(0x222222, 0.8);
-    progressBox.fillRoundedRect(width / 2 - 160, height / 2 - 25, 320, 50, 10);
+    this.progressBox = this.add.graphics();
+    this.progressBox.fillStyle(0x222222, 0.8);
+    this.progressBox.fillRoundedRect(width / 2 - 160, height / 2 - 25, 320, 50, 10);
 
     // Loading Bar progress
-    const progressBar = this.add.graphics();
+    this.progressBar = this.add.graphics();
 
     // Texts
-    const loadingText = this.add.text(width / 2, height / 2 - 60, "Loading...", {
+    this.loadingText = this.add.text(width / 2, height / 2 - 60, "Loading...", {
       fontFamily: "monospace",
       fontSize: "24px",
       color: "#ffffff"
     }).setOrigin(0.5);
 
-    const percentText = this.add.text(width / 2, height / 2, "0%", {
+    this.percentText = this.add.text(width / 2, height / 2, "0%", {
       fontFamily: "monospace",
       fontSize: "18px",
       color: "#ffffff"
     }).setOrigin(0.5);
 
-    const assetText = this.add.text(width / 2, height / 2 + 60, "", {
+    this.assetText = this.add.text(width / 2, height / 2 + 60, "", {
       fontFamily: "monospace",
       fontSize: "14px",
       color: "#aaaaaa"
@@ -35,18 +53,20 @@ class BootScene extends Phaser.Scene {
 
     // Update Progress
     this.load.on("progress", (value) => {
-      percentText.setText(parseInt(value * 100) + "%");
-      progressBar.clear();
-      progressBar.fillStyle(0xffffff, 1);
-      progressBar.fillRoundedRect(width / 2 - 150, height / 2 - 15, 300 * value, 30, 5);
+      if (this.percentText) this.percentText.setText(parseInt(value * 100) + "%");
+      if (this.progressBar) {
+        this.progressBar.clear();
+        this.progressBar.fillStyle(0xffffff, 1);
+        this.progressBar.fillRoundedRect(this.scale.width / 2 - 150, this.scale.height / 2 - 15, 300 * value, 30, 5);
+      }
     });
 
     this.load.on("fileprogress", (file) => {
-      assetText.setText("Loading: " + file.key);
+      if (this.assetText) this.assetText.setText("Loading: " + file.key);
     });
 
     this.load.on("complete", () => {
-      loadingText.setText("Ready!");
+      if (this.loadingText) this.loadingText.setText("Ready!");
       this.createProceduralBackground();
       this.time.delayedCall(500, () => {
         this.scene.start("MenuScene");
@@ -60,13 +80,13 @@ class BootScene extends Phaser.Scene {
 
     // --- Asset Preloading ---
     // In a CDN-friendly structure, these would usually be in an /assets folder
-    
+
     // Images
     this.load.image("card_back", "assets/images/cards/back.png");
     this.load.image("bg", "assets/background.png");
-    
-    // Load card faces (Kenney pack: front_01.png to front_08.png)
-    for (let i = 1; i <= 8; i++) {
+
+    // Load card faces (Kenney pack: front_01.png to front_10.png)
+    for (let i = 1; i <= 10; i++) {
       const id = i.toString().padStart(2, "0");
       this.load.image(`card_front_${id}`, `assets/images/cards/front_${id}.png`);
     }
@@ -84,8 +104,8 @@ class BootScene extends Phaser.Scene {
 
     // Dummy load if no real assets are being added yet to see the bar
     if (this.load.totalToLoad === 0) {
-       // Just a small delay or a dummy asset to ensure complete event triggers nicely
-       this.load.image("pixel", "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=");
+      // Just a small delay or a dummy asset to ensure complete event triggers nicely
+      this.load.image("pixel", "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=");
     }
   }
 
@@ -95,7 +115,7 @@ class BootScene extends Phaser.Scene {
 
     // 1. Deep Charcoal/Grey Gradient-like base
     // We'll fill with a dark grey and add some subtle variations
-    graphics.fillStyle(0x1a1a1a); 
+    graphics.fillStyle(0x1a1a1a);
     graphics.fillRect(0, 0, size, size);
 
     // 2. Add professional "Carbon Fiber" or "Tech" pattern
@@ -112,14 +132,14 @@ class BootScene extends Phaser.Scene {
     // 3. Very subtle cross-hatch/grid for structure
     graphics.lineStyle(1, 0xffffff, 0.02);
     graphics.strokeRect(0, 0, size, size);
-    
+
     // Add a center highlight feel (even though it's tiled, we can simulate texture)
     graphics.fillStyle(0x222222, 0.5);
     graphics.fillCircle(size / 2, size / 2, size / 2);
 
     // Generate texture
     graphics.generateTexture('game_bg', size, size);
-    
+
     // Create a small white circle for particles
     graphics.clear();
     graphics.fillStyle(0xffffff, 1);

@@ -20,9 +20,9 @@ class UIScene extends Phaser.Scene {
     this.hudBorder = this.add.rectangle(width * 0.5, 90, width, 2, 0x4cc9f0, 0.3);
 
     // HUD Container - Left aligned to prevent button overlap
-    this.hudText = this.add.text(25, 45, "", {
+    this.hudText = this.add.text(15, 45, "", {
       fontFamily: "Arial Black",
-      fontSize: "20px",
+      fontSize: "18px",
       color: "#ffffff"
     }).setOrigin(0, 0.5);
 
@@ -45,14 +45,7 @@ class UIScene extends Phaser.Scene {
     }, this);
 
     // Handle Resize
-    this.scale.on("resize", () => {
-      const { width } = this.scale;
-      this.hudBar.setPosition(width * 0.5, 45).setSize(width, 90);
-      this.hudBorder.setPosition(width * 0.5, 90).setSize(width, 2);
-      this.hudText.setX(25);
-      this.pauseBtn.setX(width - 35);
-      this.soundBtn.setX(width - 95);
-    });
+    this.scale.on("resize", this.handleResize, this);
 
     // Pause Button
     this.pauseBtn = this.add.text(width - 35, 45, "II", {
@@ -82,9 +75,42 @@ class UIScene extends Phaser.Scene {
     // Create Pause Overlay (hidden by default)
     this.createPauseOverlay();
 
+    // Initial layout
+    this.handleResize();
+
     // Cleanup
     this.events.once("shutdown", this.cleanup, this);
   }
+
+  handleResize() {
+    const { width } = this.scale;
+    const isSmall = width < 480;
+
+    if (this.hudBar) this.hudBar.setPosition(width * 0.5, 45).setSize(width, 90);
+    if (this.hudBorder) this.hudBorder.setPosition(width * 0.5, 90).setSize(width, 2);
+
+    if (this.hudText) {
+      this.hudText.setX(Math.max(10, width * 0.02));
+      this.hudText.setFontSize(isSmall ? "14px" : "18px");
+    }
+
+    if (this.pauseBtn) {
+      this.pauseBtn.setX(width - 25);
+      this.pauseBtn.setFontSize(isSmall ? "28px" : "36px");
+    }
+    if (this.soundBtn) {
+      this.soundBtn.setX(width - 70);
+      this.soundBtn.setFontSize(isSmall ? "24px" : "32px");
+    }
+
+    // Pause Overlay resize
+    if (this.pauseOverlay && this.pauseOverlay.visible) {
+      const { height } = this.scale;
+      if (this.pauseOverlayBg) this.pauseOverlayBg.setSize(width, height).setPosition(width * 0.5, height * 0.5);
+      if (this.pausePanel) this.pausePanel.setPosition(width * 0.5, height * 0.5);
+    }
+  }
+
 
   cleanup() {
     const gameScene = this.scene.get("GameScene");
@@ -112,7 +138,7 @@ class UIScene extends Phaser.Scene {
     bg.setInteractive(); // Block input to scenes below
 
     const panel = this.add.container(width * 0.5, height * 0.5);
-    
+
     const rect = this.add.rectangle(0, 0, 420, 500, 0x1b1b1b, 1);
     rect.setStrokeStyle(4, 0x4cc9f0, 1);
 
@@ -138,20 +164,17 @@ class UIScene extends Phaser.Scene {
     panel.add([rect, title, ...resumeBtn, ...restartBtn, ...homeBtn]);
     this.pauseOverlay.add([bg, panel]);
 
-    // Handle Resize for Overlay
-    this.scale.on("resize", () => {
-      const { width, height } = this.scale;
-      bg.setSize(width, height).setPosition(width * 0.5, height * 0.5);
-      panel.setPosition(width * 0.5, height * 0.5);
-    });
+    // Store references for handleResize
+    this.pauseOverlayBg = bg;
+    this.pausePanel = panel;
   }
 
   createOverlayButton(x, y, text, callback, color) {
     const container = this.add.container(x, y);
-    
+
     const btnBg = this.add.rectangle(0, 0, 300, 80, color, 1);
     btnBg.setStrokeStyle(2, 0xffffff, 0.3);
-    
+
     const btnText = this.add.text(0, 0, text, {
       fontFamily: "Arial Black",
       fontSize: "30px",
@@ -202,7 +225,7 @@ class UIScene extends Phaser.Scene {
 
     const timeStr = this.formatTime(this.elapsedTime);
     this.hudText.setText(
-      `MOVES: ${this.currentMoves}     MATCHES: ${this.currentMatches}/${this.totalPairs}     TIME: ${timeStr}`
+      `MOVES: ${this.currentMoves}   MATCHES: ${this.currentMatches}/${this.totalPairs}   TIME: ${timeStr}`
     );
   }
 
